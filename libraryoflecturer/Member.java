@@ -1,239 +1,179 @@
 /**
- * @author      masjohncook
- * @version     0.0.1
- * @copyright   (C) Copyright 2026
- * @license     None
- * @maintainer  masjohncook
- * @email       mas.john.cook@gmail.com
- * @status      None
- */
-/**
- * Represents a library member who can borrow, return, and search for books.
+ * Represents a library member who can borrow, return, and search for items.
+ * INHERITANCE: Member extends Person (inherits id and name).
  *
- * Each member has a unique ID and a name. A member can hold up to MAX_BORROW
- * books at the same time. The books currently borrowed are stored in an array.
- * This class also provides the initial member data used at system startup.
+ * Adds member-specific attributes: borrowedItems array and borrowCount.
+ * Overrides getInfo() and toString() from Person.
  *
- * Attributes:
- *   - memberId      : unique identifier for the member (e.g. "M001")
- *   - name          : full name of the member
- *   - borrowedBooks : array of books the member is currently borrowing
- *   - borrowCount   : number of books currently borrowed
+ * Attributes (inherited from Person):
+ *   - id   : unique member ID (e.g. "M001")
+ *   - name : full name of the member
+ *
+ * Attributes (added here):
+ *   - borrowedItems : array of LibraryItem currently borrowed
+ *   - borrowCount   : number of items currently borrowed
  */
-public class Member {
+public class Member extends Person {
 
-    // memberId is the unique code for this member, e.g. "M001"
-    private String memberId;
+    // borrowedItems stores LibraryItem objects (can be Books OR Multimedia)
+    // Using LibraryItem (superclass) allows polymorphism
+    private LibraryItem[] borrowedItems;
 
-    // name stores the full name of the member
-    private String name;
-
-    // borrowedBooks is an array holding the books this member currently has
-    // This is an association: Member -> Books[]
-    private Books[] borrowedBooks;
-
-    // borrowCount tracks how many books the member is currently borrowing
+    // borrowCount tracks how many items are currently borrowed
     private int borrowCount;
 
-    // MAX_BORROW is a constant — a member can borrow at most 5 books at once
-    // static means it belongs to the class, not to any single object
-    // final means this value cannot be changed after it is set
+    // MAX_BORROW is the maximum number of items a member can borrow at once
     private static final int MAX_BORROW = 5;
 
     /**
-     * Creates a new member with the given ID and name.
-     * The borrowed books array is initialized empty.
+     * Creates a new Member by calling the Person superclass constructor.
+     * INHERITANCE: super(memberId, name) passes the values up to Person.
      *
-     * @param memberId unique member identifier
+     * @param memberId unique member ID
      * @param name     full name of the member
      */
     public Member(String memberId, String name) {
-        // Assign the given memberId to this object's memberId attribute
-        this.memberId = memberId;
+        // Call the parent (Person) constructor to set id and name
+        super(memberId, name);
 
-        // Assign the given name to this object's name attribute
-        this.name = name;
+        // Initialize the borrowed items array with MAX_BORROW empty slots
+        this.borrowedItems = new LibraryItem[MAX_BORROW];
 
-        // Create an empty array with MAX_BORROW slots to hold borrowed books
-        this.borrowedBooks = new Books[MAX_BORROW];
-
-        // No books are borrowed yet, so the count starts at 0
+        // No items borrowed yet
         this.borrowCount = 0;
     }
 
     /**
      * Returns the pre-defined initial member data for the library.
-     * Keeping this data here ensures the Member class owns its own defaults.
      *
-     * @return array of Member objects pre-filled with default members
+     * @return array of Member pre-filled with default members
      */
     public static Member[] getInitialMembers() {
-        // Create an array that can hold 3 Member objects
         Member[] initial = new Member[3];
-
-        // Fill each slot with a pre-defined member using their ID and name
         initial[0] = new Member("M001", "Alice");
         initial[1] = new Member("M002", "Bob");
         initial[2] = new Member("M003", "Charlie");
-
-        // Return the completed array to whoever called this method
         return initial;
     }
 
-    /**
-     * Borrows a book for this member.
-     * Fails if the book is already borrowed by someone else,
-     * or if this member has reached the maximum borrow limit.
-     *
-     * @param book the book to borrow
-     * @return true if the borrow was successful, false otherwise
-     */
-    public boolean borrowBook(Books book) { 
-        // Check if the book is available — if not, reject the request
-        if (!book.isAvailable()) {
-            System.out.println("  [FAILED] \"" + book.getTitle() + "\" is currently not available.");
-            return false; // Stop here and report failure
-        }
+    // ── Borrow & Return ───────────────────────────────────────────────────────
 
-        // Check if this member has already reached their borrowing limit
+    /**
+     * Borrows a LibraryItem (Book or Multimedia) for this member.
+     * Uses LibraryItem (superclass) parameter = POLYMORPHISM in action.
+     *
+     * @param item the item to borrow (can be Books or Multimedia)
+     * @return true if successful, false otherwise
+     */
+    public boolean borrowItem(LibraryItem item) {
+        if (!item.isAvailable()) {
+            System.out.println("  [FAILED] \"" + item.getTitle() + "\" is currently not available.");
+            return false;
+        }
         if (borrowCount >= MAX_BORROW) {
             System.out.println("  [FAILED] " + name + " has reached the borrow limit (" + MAX_BORROW + ").");
-            return false; // Stop here and report failure
+            return false;
         }
-
-        // Add the book to the member's borrowedBooks array at the next open slot
-        // borrowCount++ adds the book at index borrowCount, then increases borrowCount by 1
-        borrowedBooks[borrowCount++] = book;
-
-        // Mark the book as no longer available in the system
-        book.setAvailable(false);
-
-        // Confirm the successful borrow to the console
-        System.out.println("  [SUCCESS] " + name + " borrowed \"" + book.getTitle() + "\".");
-
-        // Return true to indicate the borrow was successful
+        borrowedItems[borrowCount++] = item;
+        item.setAvailable(false);
+        System.out.println("  [SUCCESS] " + name + " borrowed \"" + item.getTitle() + "\".");
         return true;
     }
 
     /**
-     * Returns a borrowed book back to the library.
-     * Fails if this member does not currently have the given book.
+     * Returns a borrowed LibraryItem back to the library.
      *
-     * @param book the book to return
-     * @return true if the return was successful, false otherwise
+     * @param item the item to return
+     * @return true if successful, false otherwise
      */
-    public boolean returnBook(Books book) {
-        // Loop through all books this member is currently borrowing
+    public boolean returnItem(LibraryItem item) {
         for (int i = 0; i < borrowCount; i++) {
-
-            // Check if this slot has a book and its ID matches the book to return
-            if (borrowedBooks[i] != null
-                    && borrowedBooks[i].getBookId().equals(book.getBookId())) {
-
-                // Mark the book as available again in the system
-                book.setAvailable(true);
-
-                // Remove the book from the array by replacing it with the last entry
-                // --borrowCount decreases the count first, then uses that value as the index
-                borrowedBooks[i] = borrowedBooks[--borrowCount];
-
-                // Clear the last slot to avoid keeping a duplicate reference
-                borrowedBooks[borrowCount] = null;
-
-                // Confirm the successful return to the console
-                System.out.println("  [SUCCESS] " + name + " returned \"" + book.getTitle() + "\".");
-
-                // Return true to indicate the return was successful
+            if (borrowedItems[i] != null
+                    && borrowedItems[i].getItemId().equals(item.getItemId())) {
+                item.setAvailable(true);
+                borrowedItems[i] = borrowedItems[--borrowCount];
+                borrowedItems[borrowCount] = null;
+                System.out.println("  [SUCCESS] " + name + " returned \"" + item.getTitle() + "\".");
                 return true;
             }
         }
-
-        // If the loop finishes without finding the book, report failure
-        System.out.println("  [FAILED] " + name + " does not have \"" + book.getTitle() + "\".");
+        System.out.println("  [FAILED] " + name + " does not have \"" + item.getTitle() + "\".");
         return false;
     }
 
+    // ── searchItem (OVERLOADING) ──────────────────────────────────────────────
+    // Two methods with the same name but different parameters = OVERLOADING
+
     /**
-     * Searches the library catalog for books whose title contains the given keyword.
-     * The search is case-insensitive. All matching books are printed to the console.
+     * OVERLOADING Method 1: Search items by keyword in title.
+     * Uses a keyword to filter matching items.
      *
-     * @param catalog     the full array of books in the library
-     * @param catalogSize the number of valid books in the catalog array
-     * @param keyword     the search keyword to match against book titles
+     * @param catalog     full array of LibraryItem in the library
+     * @param catalogSize number of valid entries in the catalog
+     * @param keyword     search keyword to match against titles
      */
-    public void searchBook(Books[] catalog, int catalogSize, String keyword) {
-        // Print a header showing what keyword is being searched
+    public void searchItem(LibraryItem[] catalog, int catalogSize, String keyword) {
         System.out.println("  Search results for \"" + keyword + "\":");
-
-        // found tracks whether at least one matching book was found
         boolean found = false;
-
-        // Loop through every valid book in the catalog
         for (int i = 0; i < catalogSize; i++) {
-
-            // Convert both strings to lowercase so the search is case-insensitive
-            // contains() checks if the title includes the keyword anywhere inside it
             if (catalog[i] != null
                     && catalog[i].getTitle().toLowerCase().contains(keyword.toLowerCase())) {
-
-                // Print the matching book's details
                 System.out.println("    -> " + catalog[i]);
-
-                // Mark that we found at least one result
                 found = true;
             }
         }
-
-        // If no match was found after checking all books, print a message
         if (!found) {
-            System.out.println("    No books found matching \"" + keyword + "\".");
+            System.out.println("    No items found matching \"" + keyword + "\".");
+        }
+    }
+
+    /**
+     * OVERLOADING Method 2: List ALL items in the catalog (no keyword filter).
+     * Same method name, but takes no keyword parameter.
+     *
+     * @param catalog     full array of LibraryItem in the library
+     * @param catalogSize number of valid entries in the catalog
+     */
+    public void searchItem(LibraryItem[] catalog, int catalogSize) {
+        System.out.println("  All items in the library catalog:");
+        if (catalogSize == 0) {
+            System.out.println("    (empty)");
+            return;
+        }
+        for (int i = 0; i < catalogSize; i++) {
+            if (catalog[i] != null) {
+                System.out.println("    -> " + catalog[i]);
+            }
         }
     }
 
     // ── Getters ───────────────────────────────────────────────────────────────
 
+    /** Returns the member's unique ID. */
+    public String getMemberId()            { return id; }   // id is inherited from Person
 
-    /** Returns the unique member ID. */
-    public String getMemberId() { 
-        return memberId; 
-    }
+    /** Returns the array of currently borrowed items. */
+    public LibraryItem[] getBorrowedItems(){ return borrowedItems; }
 
-    /** Returns the name of the member. */
-    public String getName() {
-        return name;
-    }
+    /** Returns the number of currently borrowed items. */
+    public int getBorrowCount()            { return borrowCount; }
 
-    /** Returns the array of books currently borrowed by this member. */
-    public Books[] getBorrowedBooks() { 
-        return borrowedBooks; 
-    }
-
-    /** Returns the number of books currently borrowed by this member. */
-    public int getBorrowCount() { 
-        return borrowCount; 
-    }
-
-    // ── Setters ───────────────────────────────────────────────────────────────
-
-
-    /** Updates the member ID. */
-    public void setMemberId(String memberId) { 
-        this.memberId = memberId; 
-    }
-
-    /** Updates the name of the member. */
-    public void setName(String name) { 
-        this.name = name; 
+    /**
+     * OVERRIDING: Overrides getInfo() from Person.
+     * Adds borrow count to the output.
+     * Example: Member[M001] Alice (borrowing: 1 item(s))
+     */
+    @Override
+    public String getInfo() {
+        return "Member[" + id + "] " + name
+                + " (borrowing: " + borrowCount + " item(s))";
     }
 
     /**
-     * Returns a readable summary of this member as a single String.
-     * This is used whenever a Member object is printed to the console.
-     * Example output: Member[M001] Alice (borrowing: 1 book(s))
+     * OVERRIDING: Overrides toString() from Person.
      */
+    @Override
     public String toString() {
-        // Build a formatted string showing the member ID, name, and borrow count
-        return "Member[" + memberId + "] " + name
-                + " (borrowing: " + borrowCount + " book(s))";
+        return getInfo();
     }
 }
